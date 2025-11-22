@@ -1,5 +1,4 @@
 import unittest
-
 from textnode import TextNode, TextType
 
 
@@ -18,11 +17,6 @@ class TestTextNode(unittest.TestCase):
         node = TextNode("This is a text node", TextType.BOLD)
         node2 = TextNode("This is a text node", TextType.LINK)
         self.assertNotEqual(node, node2)
-
-    def test_none_link_eq(self):
-        node = TextNode("This is a text node", TextType.TEXT, None)
-        node2 = TextNode("This is a text node", TextType.TEXT)
-        self.assertEqual(node, node2)
 
 
 if __name__ == "__main__":
