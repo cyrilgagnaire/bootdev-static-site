@@ -51,7 +51,3 @@ class TestSplitNodesDelimiter(unittest.TestCase):
             TextNode("This is a link", TextType.LINK),
         ]
         self.assertEqual(new_nodes, expected)
-
-
-if __name__ == "__main__":
-    unittest.main()
