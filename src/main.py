@@ -1,22 +1,17 @@
 from textnode import TextNode
 from htmlnode import HTMLNode, LeafNode, ParentNode
+from functions import *
 
 
 def main():
-    # text_node = TextNode("This is some anchor text", "link", "https://www.boot.dev")
-    # print(text_node.__repr__())
-
-    node = ParentNode(
-        tag="p",
-        children=[
-            LeafNode("b", "Bold text"),
-            LeafNode(None, "Normal text"),
-            LeafNode("i", "italic text"),
-            LeafNode(None, "Normal text"),
-        ],
+    node = TextNode(
+        "This is text with a link [to boot dev](https://www.boot.dev) and [to youtube](https://www.youtube.com/@bootdotdev)",
+        TextType.TEXT,
     )
 
-    print(node.to_html())
+    new_nodes = split_nodes_link([node])
+
+    print(new_nodes)
 
 
 if __name__ == "__main__":
