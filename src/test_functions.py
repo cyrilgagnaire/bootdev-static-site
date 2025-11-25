@@ -7,6 +7,7 @@ from functions import (
     split_nodes_image,
     split_nodes_link,
     text_to_textnodes,
+    markdown_to_blocks,
 )
 
 
@@ -282,6 +283,61 @@ class TestFunctions(unittest.TestCase):
             TextNode("This is plain text with no formatting", TextType.TEXT),
         ]
         self.assertEqual(nodes, expected)
+
+    def test_text_to_textnodes_multiple_bold(self):
+        text = "**bold1** and **bold2**"
+        nodes = text_to_textnodes(text)
+        expected = [
+            TextNode("bold1", TextType.BOLD),
+            TextNode(" and ", TextType.TEXT),
+            TextNode("bold2", TextType.BOLD),
+        ]
+        self.assertEqual(nodes, expected)
+
+    # markdown_to_blocks tests
+    def test_markdown_to_blocks_basic(self):
+        md = "# Heading\n\nParagraph line 1.\nParagraph line 2.\n\n- item1\n- item2"
+        blocks = markdown_to_blocks(md)
+        expected = [
+            "# Heading",
+            "Paragraph line 1.\nParagraph line 2.",
+            "- item1\n- item2",
+        ]
+        self.assertEqual(blocks, expected)
+
+    def test_markdown_to_blocks_trailing_newlines(self):
+        md = "# Heading\n\nParagraph\n\n\n\n"
+        blocks = markdown_to_blocks(md)
+        expected = ["# Heading", "Paragraph"]
+        self.assertEqual(blocks, expected)
+
+    def test_markdown_to_blocks_multiple_blank_lines(self):
+        md = "Line 1\n\n\n\nLine 2"
+        blocks = markdown_to_blocks(md)
+        expected = ["Line 1", "Line 2"]
+        self.assertEqual(blocks, expected)
+
+    def test_markdown_to_blocks_whitespace_only_blocks(self):
+        md = "Line 1\n\n   \n\n\t\nLine 2"
+        blocks = markdown_to_blocks(md)
+        expected = ["Line 1", "Line 2"]
+        self.assertEqual(blocks, expected)
+
+    def test_markdown_to_blocks_empty_input(self):
+        self.assertEqual(markdown_to_blocks(""), [])
+        self.assertEqual(markdown_to_blocks(None), [])
+
+    def test_markdown_to_blocks_mixed_content(self):
+        md = "# Title\n\n  Text with **bold** and _italic_.  \n\n- a\n- b  \n\nCode:\n\n`snippet`"
+        blocks = markdown_to_blocks(md)
+        expected = [
+            "# Title",
+            "Text with **bold** and _italic_.",
+            "- a\n- b",
+            "Code:",
+            "`snippet`",
+        ]
+        self.assertEqual(blocks, expected)
 
 
 if __name__ == "__main__":

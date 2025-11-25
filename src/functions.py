@@ -128,4 +128,22 @@ def text_to_textnodes(text):
     # Split by links
     nodes = split_nodes_link(nodes)
 
+    # Remove any empty TEXT nodes produced by leading/trailing delimiters
+    nodes = [n for n in nodes if not (n.text_type == TextType.TEXT and n.text == "")]
+
     return nodes
+
+
+def markdown_to_blocks(markdown):
+    if markdown is None:
+        return []
+    # Normalize newlines (handle Windows newlines) and ensure we work with a str
+    text = str(markdown).replace("\r\n", "\n").replace("\r", "\n")
+    # Split on one or more blank lines (lines containing only whitespace)
+    raw_blocks = re.split(r"\n\s*\n", text)
+    blocks = []
+    for block in raw_blocks:
+        stripped = block.strip()
+        if stripped:
+            blocks.append(stripped)
+    return blocks
