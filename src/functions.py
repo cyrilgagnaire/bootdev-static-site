@@ -1,5 +1,16 @@
 import re
+from enum import Enum
 from textnode import TextNode, TextType
+from htmlnode import ParentNode, text_node_to_html_node
+
+
+class BlockType(Enum):
+    PARAGRAPH = "paragraph"
+    HEADING = "heading"
+    CODE = "code"
+    QUOTE = "quote"
+    UNORDERED_LIST = "unordered_list"
+    ORDERED_LIST = "ordered_list"
 
 
 def split_nodes_delimiter(old_nodes, delimiter, text_type):
@@ -147,3 +158,114 @@ def markdown_to_blocks(markdown):
         if stripped:
             blocks.append(stripped)
     return blocks
+
+
+def block_to_block_type(block):
+    if block is None:
+        return BlockType.PARAGRAPH
+
+    lines = block.split("\n")
+
+    if re.match(r"^#{1,6} ", block):
+        return BlockType.HEADING
+
+    if block.startswith("```") and block.endswith("```"):
+        return BlockType.CODE
+
+    if all(line.startswith(">") for line in lines):
+        return BlockType.QUOTE
+
+    if all(line.startswith("- ") for line in lines):
+        return BlockType.UNORDERED_LIST
+
+    if _is_ordered_list(lines):
+        return BlockType.ORDERED_LIST
+
+    return BlockType.PARAGRAPH
+
+
+def _is_ordered_list(lines):
+    for index, line in enumerate(lines, start=1):
+        if not re.match(rf"{index}\. ", line):
+            return False
+    return bool(lines)
+
+
+def text_to_children(text):
+    """Convert inline markdown text into a list of HTMLNode children.
+
+    Uses `text_to_textnodes` and `text_node_to_html_node` to produce
+    a list of LeafNode/HTMLNode representing inline elements.
+    """
+    nodes = text_to_textnodes(text)
+    return [text_node_to_html_node(n) for n in nodes]
+
+
+def markdown_to_html_node(markdown):
+    """Convert a full markdown document string into a single parent HTMLNode.
+
+    Splits into blocks, converts each block based on its type, and returns
+    a `div` ParentNode containing all block nodes.
+    """
+    blocks = markdown_to_blocks(markdown)
+    children = []
+
+    for block in blocks:
+        btype = block_to_block_type(block)
+
+        if btype == BlockType.HEADING:
+            m = re.match(r"^(#{1,6})\s(.*)$", block)
+            hashes, text = m.group(1), m.group(2)
+            level = len(hashes)
+            children_nodes = text_to_children(text)
+            children.append(ParentNode(tag=f"h{level}", children=children_nodes))
+
+        elif btype == BlockType.PARAGRAPH:
+            children_nodes = text_to_children(block)
+            children.append(ParentNode(tag="p", children=children_nodes))
+
+        elif btype == BlockType.QUOTE:
+            lines = block.split("\n")
+            # Remove leading '>' and optional space from each line
+            inner_text = "\n".join(re.sub(r"^>\s?", "", ln) for ln in lines)
+            children_nodes = text_to_children(inner_text)
+            children.append(ParentNode(tag="blockquote", children=children_nodes))
+
+        elif btype == BlockType.UNORDERED_LIST:
+            lines = block.split("\n")
+            li_nodes = []
+            for ln in lines:
+                # remove leading '- ' from item
+                item_text = re.sub(r"^-\s", "", ln)
+                item_children = text_to_children(item_text)
+                li_nodes.append(ParentNode(tag="li", children=item_children))
+            children.append(ParentNode(tag="ul", children=li_nodes))
+
+        elif btype == BlockType.ORDERED_LIST:
+            lines = block.split("\n")
+            li_nodes = []
+            for ln in lines:
+                item_text = re.sub(r"^\d+\.\s", "", ln)
+                item_children = text_to_children(item_text)
+                li_nodes.append(ParentNode(tag="li", children=item_children))
+            children.append(ParentNode(tag="ol", children=li_nodes))
+
+        elif btype == BlockType.CODE:
+            # Remove the surrounding triple backticks, preserve inner as-is
+            code_text = block
+            if code_text.startswith("```") and code_text.endswith("```"):
+                code_text = code_text[3:-3]
+                # Trim a single leading/trailing newline if present
+                if code_text.startswith("\n"):
+                    code_text = code_text[1:]
+                if code_text.endswith("\n"):
+                    code_text = code_text[:-1]
+            code_node = text_node_to_html_node(TextNode(code_text, TextType.CODE))
+            children.append(ParentNode(tag="pre", children=[code_node]))
+
+        else:
+            # Fallback to paragraph
+            children_nodes = text_to_children(block)
+            children.append(ParentNode(tag="p", children=children_nodes))
+
+    return ParentNode(tag="div", children=children)

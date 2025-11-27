@@ -8,6 +8,9 @@ from functions import (
     split_nodes_link,
     text_to_textnodes,
     markdown_to_blocks,
+    block_to_block_type,
+    BlockType,
+    markdown_to_html_node,
 )
 
 
@@ -338,6 +341,76 @@ class TestFunctions(unittest.TestCase):
             "`snippet`",
         ]
         self.assertEqual(blocks, expected)
+
+    # markdown_to_html_node tests
+    def test_markdown_to_html_heading_paragraph_ul(self):
+        md = "# This is a heading\n\nThis is a paragraph of text. It has some **bold** and _italic_ words inside of it.\n\n- This is the first list item in a list block\n- This is a list item\n- This is another list item"
+        root = markdown_to_html_node(md)
+        html = root.to_html()
+        self.assertIn("<div>", html)
+        self.assertIn("<h1>This is a heading</h1>", html)
+        self.assertIn(
+            "<p>This is a paragraph of text. It has some <b>bold</b> and <i>italic</i> words inside of it.</p>",
+            html,
+        )
+        self.assertIn("<ul>", html)
+        self.assertIn("<li>This is the first list item in a list block</li>", html)
+        self.assertIn("<li>This is a list item</li>", html)
+        self.assertIn("<li>This is another list item</li>", html)
+        self.assertTrue(html.endswith("</div>"))
+
+    def test_markdown_to_html_quote(self):
+        md = "> quoted line"
+        root = markdown_to_html_node(md)
+        html = root.to_html()
+        self.assertEqual(html, "<div><blockquote>quoted line</blockquote></div>")
+
+    def test_markdown_to_html_ordered_list(self):
+        md = "1. first\n2. second\n3. third"
+        root = markdown_to_html_node(md)
+        html = root.to_html()
+        self.assertEqual(
+            html, "<div><ol><li>first</li><li>second</li><li>third</li></ol></div>"
+        )
+
+    def test_markdown_to_html_code_block(self):
+        md = "```\nprint('hello')\n```"
+        root = markdown_to_html_node(md)
+        html = root.to_html()
+        self.assertEqual(html, "<div><pre><code>print('hello')</code></pre></div>")
+
+    # block_to_block_type tests
+    def test_block_to_block_type_heading(self):
+        self.assertEqual(block_to_block_type("### Heading"), BlockType.HEADING)
+
+    def test_block_to_block_type_heading_without_space(self):
+        self.assertEqual(block_to_block_type("###Heading"), BlockType.PARAGRAPH)
+
+    def test_block_to_block_type_code_block(self):
+        self.assertEqual(block_to_block_type("```\nprint('hi')\n```"), BlockType.CODE)
+
+    def test_block_to_block_type_quote(self):
+        block = "> quote line one\n> quote line two"
+        self.assertEqual(block_to_block_type(block), BlockType.QUOTE)
+
+    def test_block_to_block_type_unordered_list(self):
+        block = "- item one\n- item two"
+        self.assertEqual(block_to_block_type(block), BlockType.UNORDERED_LIST)
+
+    def test_block_to_block_type_ordered_list_valid(self):
+        block = "1. first\n2. second\n3. third"
+        self.assertEqual(block_to_block_type(block), BlockType.ORDERED_LIST)
+
+    def test_block_to_block_type_ordered_list_invalid_numbering(self):
+        block = "1. first\n3. second"
+        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
+
+    def test_block_to_block_type_ordered_list_wrong_start(self):
+        block = "2. first\n3. second"
+        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
+
+    def test_block_to_block_type_paragraph_default(self):
+        self.assertEqual(block_to_block_type("Just a paragraph."), BlockType.PARAGRAPH)
 
 
 if __name__ == "__main__":
