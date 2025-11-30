@@ -11,6 +11,7 @@ from functions import (
     block_to_block_type,
     BlockType,
     markdown_to_html_node,
+    extract_title,
 )
 
 
@@ -411,6 +412,34 @@ class TestFunctions(unittest.TestCase):
 
     def test_block_to_block_type_paragraph_default(self):
         self.assertEqual(block_to_block_type("Just a paragraph."), BlockType.PARAGRAPH)
+
+    # extract_title tests
+    def test_extract_title_basic(self):
+        self.assertEqual(extract_title("# Hello"), "Hello")
+
+    def test_extract_title_leading_whitespace(self):
+        self.assertEqual(extract_title("#   Hello World  \nSome text"), "Hello World")
+
+    def test_extract_title_from_document(self):
+        md = """# My Title
+
+Paragraph under title.
+
+## Subheading
+More text.
+"""
+        self.assertEqual(extract_title(md), "My Title")
+
+    def test_extract_title_requires_single_hash(self):
+        md = """## Not an H1
+Text body
+"""
+        with self.assertRaises(ValueError):
+            extract_title(md)
+
+    def test_extract_title_missing(self):
+        with self.assertRaises(ValueError):
+            extract_title("No headings here")
 
 
 if __name__ == "__main__":

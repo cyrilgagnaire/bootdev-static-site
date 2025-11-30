@@ -49,14 +49,22 @@ class HTMLNode:
 
 
 class LeafNode(HTMLNode):
+    # Self-closing tags that don't require a value
+    SELF_CLOSING_TAGS = {"img", "br", "hr", "input", "meta", "link"}
+
     def __init__(self, tag=None, value=None, children=None, props=None):
         if children is not None:
             raise ValueError("LeafNode does not allow 'children'.")
-        if value is None or value == "":
+        # Allow empty value for self-closing tags
+        if (value is None or value == "") and tag not in self.SELF_CLOSING_TAGS:
             raise ValueError("All leaf nodes must have a value.")
         super().__init__(tag=tag, value=value, children=None, props=props or {})
 
     def to_html(self):
+        # Handle self-closing tags
+        if self.tag in self.SELF_CLOSING_TAGS:
+            return f"<{self.tag}{self.props_to_html()} />"
+
         if not self.value:
             raise ValueError("All leaf nodes must have a value.")
 
@@ -112,7 +120,9 @@ def text_node_to_html_node(text_node):
         return LeafNode(tag="a", value=text_node.text, props={"href": text_node.url})
 
     elif text_node.text_type == TextType.IMAGE:
-        return LeafNode(tag="img", value="", props={"src": text_node.url, "alt": text_node.text})
+        return LeafNode(
+            tag="img", value="", props={"src": text_node.url, "alt": text_node.text}
+        )
 
     else:
         raise ValueError(f"Unsupported TextType: {text_node.text_type}")

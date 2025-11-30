@@ -269,3 +269,22 @@ def markdown_to_html_node(markdown):
             children.append(ParentNode(tag="p", children=children_nodes))
 
     return ParentNode(tag="div", children=children)
+
+
+def extract_title(markdown: str) -> str:
+    """Extract the first H1 (single leading '#') from markdown.
+
+    Returns the stripped title text. Raises ValueError if no H1 exists.
+    Accepts full document markdown; finds the first line that starts with
+    exactly one '#' followed by a space.
+    """
+    if markdown is None:
+        raise ValueError("No H1 header found")
+
+    # Normalize newlines and iterate lines
+    for line in str(markdown).replace("\r\n", "\n").replace("\r", "\n").split("\n"):
+        m = re.match(r"^#\s+(.*)$", line)
+        if m:
+            # Strip leading/trailing whitespace from captured title
+            return m.group(1).strip()
+    raise ValueError("No H1 header found")
